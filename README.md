@@ -75,7 +75,7 @@ The installed DSDL compiler will not function unless pyuavcan is installed.
 ## Library development
 
 Despite the fact that the library itself can be used on virtually any platform that has a standard-compliant
-C++03 or C++11 compiler, the library development process assumes that the host OS is Linux.
+C++11 compiler, the library development process assumes that the host OS is Linux.
 
 Prerequisites:
 
@@ -89,7 +89,8 @@ Building the debug version and running the unit tests:
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Debug
-make
+make -j8
+make ARGS=-VV test
 ```
 
 Test outputs can be found in the build directory under `libuavcan`.
