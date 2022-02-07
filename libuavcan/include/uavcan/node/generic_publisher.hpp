@@ -23,13 +23,11 @@ class GenericPublisherBase : Noncopyable
     TransferSender sender_;
     MonotonicDuration tx_timeout_;
     INode& node_;
-    bool canfd_frames_;
 
 protected:
-    GenericPublisherBase(INode& node, bool &canfd_frames, MonotonicDuration tx_timeout,
+    GenericPublisherBase(INode& node, MonotonicDuration tx_timeout,
                          MonotonicDuration max_transfer_interval)
         : sender_(node.getDispatcher(), max_transfer_interval)
-        , canfd_frames_(canfd_frames)
         , tx_timeout_(tx_timeout)
         , node_(node)
     {
@@ -75,8 +73,6 @@ public:
     TransferPriority getPriority() const { return sender_.getPriority(); }
     void setPriority(const TransferPriority prio) { sender_.setPriority(prio); }
 
-    bool isCanFDPublisher() const { return canfd_frames_; }
-
     INode& getNode() const { return node_; }
 };
 
@@ -114,9 +110,9 @@ public:
     /**
      * @param max_transfer_interval     Maximum expected time interval between subsequent publications. Leave default.
      */
-    GenericPublisher(INode& node, bool &canfd_frames, MonotonicDuration tx_timeout,
+    GenericPublisher(INode& node, MonotonicDuration tx_timeout,
                      MonotonicDuration max_transfer_interval = TransferSender::getDefaultMaxTransferInterval())
-        : GenericPublisherBase(node, canfd_frames, tx_timeout, max_transfer_interval)
+        : GenericPublisherBase(node, tx_timeout, max_transfer_interval)
     { }
 
     ~GenericPublisher() { }
@@ -170,7 +166,7 @@ int GenericPublisher<DataSpec, DataStruct>::doEncode(const DataStruct& message, 
     BitStream bitstream(buffer);
     ScalarCodec codec(bitstream);
     // if doing canfd transfer tail array optimisation is disabled
-    TailArrayOptimizationMode tao_mode = isCanFDPublisher() ? TailArrayOptDisabled:TailArrayOptEnabled;
+    TailArrayOptimizationMode tao_mode = (getNode().isTaoDisabled() || getNode().isCanFdEnabled()) ? TailArrayOptDisabled:TailArrayOptEnabled;
     const int encode_res = DataStruct::encode(message, codec, tao_mode);
     if (encode_res <= 0)
     {

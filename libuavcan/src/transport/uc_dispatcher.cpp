@@ -121,7 +121,7 @@ void Dispatcher::ListenerRegistry::cleanup(MonotonicTime ts)
     }
 }
 
-void Dispatcher::ListenerRegistry::handleFrame(const RxFrame& frame)
+void Dispatcher::ListenerRegistry::handleFrame(const RxFrame& frame, bool tao_disabled)
 {
     TransferListener* p = list_.get();
     while (p)
@@ -129,7 +129,7 @@ void Dispatcher::ListenerRegistry::handleFrame(const RxFrame& frame)
         TransferListener* const next = p->getNextListNode();
         if (p->getDataTypeDescriptor().getID() == frame.getDataTypeID())
         {
-            p->handleFrame(frame); // p may be modified
+            p->handleFrame(frame, tao_disabled); // p may be modified
         }
         else if (p->getDataTypeDescriptor().getID() < frame.getDataTypeID())  // Listeners are ordered by data type id!
         {
@@ -166,17 +166,17 @@ void Dispatcher::handleFrame(const CanRxFrame& can_frame)
     {
     case TransferTypeMessageBroadcast:
     {
-        lmsg_.handleFrame(frame);
+        lmsg_.handleFrame(frame, tao_disabled_);
         break;
     }
     case TransferTypeServiceRequest:
     {
-        lsrv_req_.handleFrame(frame);
+        lsrv_req_.handleFrame(frame, tao_disabled_);
         break;
     }
     case TransferTypeServiceResponse:
     {
-        lsrv_resp_.handleFrame(frame);
+        lsrv_resp_.handleFrame(frame, tao_disabled_);
         break;
     }
     default:

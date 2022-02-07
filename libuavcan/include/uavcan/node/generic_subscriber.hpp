@@ -76,6 +76,7 @@ public:
     uint8_t getIfaceIndex()          const { return safeget<uint8_t, &IncomingTransfer::getIfaceIndex>(); }
     bool isAnonymousTransfer()       const { return safeget<bool, &IncomingTransfer::isAnonymousTransfer>(); }
     bool isCanFDTransfer()           const { return safeget<bool, &IncomingTransfer::isCanFDTransfer>(); }
+    bool isTaoDisabled()             const { return safeget<bool, &IncomingTransfer::isTaoDisabled>(); }
 };
 
 /**
@@ -262,7 +263,7 @@ void GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::handleIncomi
     ScalarCodec codec(bitstream);
 
     // disable tail array optimisation if CANFD transfer
-    TailArrayOptimizationMode tao_mode = transfer.isCanFDTransfer() ? TailArrayOptDisabled:TailArrayOptEnabled;
+    TailArrayOptimizationMode tao_mode = (transfer.isCanFDTransfer() || transfer.isTaoDisabled()) ? TailArrayOptDisabled:TailArrayOptEnabled;
     const int decode_res = DataStruct::decode(rx_struct, codec, tao_mode);
 
     // We don't need the data anymore, the memory can be reused from the callback:

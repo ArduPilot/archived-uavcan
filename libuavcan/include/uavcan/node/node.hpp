@@ -80,15 +80,14 @@ public:
      * This overload is only valid if MemPoolSize > 0.
      */
     Node(ICanDriver& can_driver,
-         ISystemClock& system_clock,
-         bool canfd_frames) :
+         ISystemClock& system_clock) :
         scheduler_(can_driver, pool_allocator_, system_clock),
-        proto_nsp_(*this, canfd_frames)
+        proto_nsp_(*this)
 #if !UAVCAN_TINY
-        , proto_dtp_(*this, canfd_frames)
-        , proto_logger_(*this, canfd_frames)
-        , proto_rrs_(*this, canfd_frames)
-        , proto_tsp_(*this, canfd_frames)
+        , proto_dtp_(*this)
+        , proto_logger_(*this)
+        , proto_rrs_(*this)
+        , proto_tsp_(*this)
 #endif
     {
         commonInit();
@@ -99,16 +98,15 @@ public:
      */
     Node(ICanDriver& can_driver,
          ISystemClock& system_clock,
-         IPoolAllocator& allocator,
-         bool canfd_frames) :
+         IPoolAllocator& allocator) :
         pool_allocator_(allocator),
         scheduler_(can_driver, pool_allocator_, system_clock),
-        proto_nsp_(*this, canfd_frames)
+        proto_nsp_(*this)
 #if !UAVCAN_TINY
-        , proto_dtp_(*this, canfd_frames)
-        , proto_logger_(*this, canfd_frames)
-        , proto_rrs_(*this, canfd_frames)
-        , proto_tsp_(*this, canfd_frames)
+        , proto_dtp_(*this)
+        , proto_logger_(*this)
+        , proto_rrs_(*this)
+        , proto_tsp_(*this)
 #endif
     {
         commonInit();

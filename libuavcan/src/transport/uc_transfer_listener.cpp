@@ -21,9 +21,9 @@ int IncomingTransfer::write(unsigned, const uint8_t*, unsigned)
 /*
  * SingleFrameIncomingTransfer
  */
-SingleFrameIncomingTransfer::SingleFrameIncomingTransfer(const RxFrame& frm)
+SingleFrameIncomingTransfer::SingleFrameIncomingTransfer(const RxFrame& frm, bool tao_disabled)
     : IncomingTransfer(frm.getMonotonicTimestamp(), frm.getUtcTimestamp(), frm.getPriority(),
-                       frm.getTransferType(), frm.getTransferID(), frm.getSrcNodeID(), frm.getIfaceIndex(), frm.isCanFDFrame())
+                       frm.getTransferType(), frm.getTransferID(), frm.getSrcNodeID(), frm.getIfaceIndex(), frm.isCanFDFrame(), tao_disabled)
     , payload_(frm.getPayloadPtr())
     , payload_len_(uint8_t(frm.getPayloadLen()))
 {
@@ -59,9 +59,9 @@ bool SingleFrameIncomingTransfer::isAnonymousTransfer() const
  * MultiFrameIncomingTransfer
  */
 MultiFrameIncomingTransfer::MultiFrameIncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc,
-                                                       const RxFrame& last_frame, TransferBufferAccessor& tba)
+                                                       const RxFrame& last_frame, TransferBufferAccessor& tba, bool tao_disabled)
     : IncomingTransfer(ts_mono, ts_utc, last_frame.getPriority(), last_frame.getTransferType(),
-                       last_frame.getTransferID(), last_frame.getSrcNodeID(), last_frame.getIfaceIndex(), last_frame.isCanFDFrame())
+                       last_frame.getTransferID(), last_frame.getSrcNodeID(), last_frame.getIfaceIndex(), last_frame.isCanFDFrame(), tao_disabled)
     , buf_acc_(tba)
 {
     UAVCAN_ASSERT(last_frame.isValid());
@@ -133,7 +133,7 @@ bool TransferListener::checkPayloadCrc(const uint16_t compare_with, const ITrans
 }
 
 void TransferListener::handleReception(TransferReceiver& receiver, const RxFrame& frame,
-                                           TransferBufferAccessor& tba)
+                                           TransferBufferAccessor& tba, bool tao_disabled)
 {
     switch (receiver.addFrame(frame, tba))
     {
@@ -145,7 +145,7 @@ void TransferListener::handleReception(TransferReceiver& receiver, const RxFrame
     case TransferReceiver::ResultSingleFrame:
     {
         perf_.addRxTransfer();
-        SingleFrameIncomingTransfer it(frame);
+        SingleFrameIncomingTransfer it(frame, tao_disabled);
         handleIncomingTransfer(it);
         break;
     }
@@ -164,7 +164,7 @@ void TransferListener::handleReception(TransferReceiver& receiver, const RxFrame
             break;
         }
         MultiFrameIncomingTransfer it(receiver.getLastTransferTimestampMonotonic(),
-                                      receiver.getLastTransferTimestampUtc(), frame, tba);
+                                      receiver.getLastTransferTimestampUtc(), frame, tba, tao_disabled);
         handleIncomingTransfer(it);
         it.release();
         break;
@@ -177,12 +177,12 @@ void TransferListener::handleReception(TransferReceiver& receiver, const RxFrame
     }
 }
 
-void TransferListener::handleAnonymousTransferReception(const RxFrame& frame)
+void TransferListener::handleAnonymousTransferReception(const RxFrame& frame, bool tao_disabled)
 {
     if (allow_anonymous_transfers_)
     {
         perf_.addRxTransfer();
-        SingleFrameIncomingTransfer it(frame);
+        SingleFrameIncomingTransfer it(frame, tao_disabled);
         handleIncomingTransfer(it);
     }
 }
@@ -204,7 +204,7 @@ void TransferListener::cleanup(MonotonicTime ts)
     UAVCAN_ASSERT(receivers_.isEmpty() ? bufmgr_.isEmpty() : 1);
 }
 
-void TransferListener::handleFrame(const RxFrame& frame)
+void TransferListener::handleFrame(const RxFrame& frame, bool tao_disabled)
 {
     if (frame.getSrcNodeID().isUnicast())       // Normal transfer
     {
@@ -227,14 +227,14 @@ void TransferListener::handleFrame(const RxFrame& frame)
             }
         }
         TransferBufferAccessor tba(bufmgr_, key);
-        handleReception(*recv, frame, tba);
+        handleReception(*recv, frame, tba, tao_disabled);
     }
     else if (frame.getSrcNodeID().isBroadcast() &&
              frame.isStartOfTransfer() &&
              frame.isEndOfTransfer() &&
              frame.getDstNodeID().isBroadcast())        // Anonymous transfer
     {
-        handleAnonymousTransferReception(frame);
+        handleAnonymousTransferReception(frame, tao_disabled);
     }
     else
     {
@@ -245,13 +245,13 @@ void TransferListener::handleFrame(const RxFrame& frame)
 /*
  * TransferListenerWithFilter
  */
-void TransferListenerWithFilter::handleFrame(const RxFrame& frame)
+void TransferListenerWithFilter::handleFrame(const RxFrame& frame, bool tao_disabled)
 {
     if (filter_ != UAVCAN_NULLPTR)
     {
         if (filter_->shouldAcceptFrame(frame))
         {
-            TransferListener::handleFrame(frame);
+            TransferListener::handleFrame(frame, tao_disabled);
         }
     }
     else

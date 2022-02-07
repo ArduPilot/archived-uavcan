@@ -31,6 +31,7 @@ class UAVCAN_EXPORT IncomingTransfer : public ITransferBuffer
     NodeID src_node_id_;
     uint8_t iface_index_;
     bool canfd_transfer_;
+    bool tao_disabled_;
 
     /// That's a no-op, asserts in debug builds
     virtual int write(unsigned offset, const uint8_t* data, unsigned len) override;
@@ -38,7 +39,7 @@ class UAVCAN_EXPORT IncomingTransfer : public ITransferBuffer
 protected:
     IncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc, TransferPriority transfer_priority,
                      TransferType transfer_type, TransferID transfer_id, NodeID source_node_id,
-                     uint8_t iface_index, bool canfd_transfer)
+                     uint8_t iface_index, bool canfd_transfer, bool tao_disabled)
         : ts_mono_(ts_mono)
         , ts_utc_(ts_utc)
         , transfer_priority_(transfer_priority)
@@ -47,6 +48,7 @@ protected:
         , src_node_id_(source_node_id)
         , iface_index_(iface_index)
         , canfd_transfer_(canfd_transfer)
+        , tao_disabled_(tao_disabled)
     { }
 
 public:
@@ -68,6 +70,7 @@ public:
     NodeID getSrcNodeID()                 const { return src_node_id_; }
     uint8_t getIfaceIndex()               const { return iface_index_; }
     bool isCanFDTransfer()                const { return canfd_transfer_; }
+    bool isTaoDisabled()                  const { return tao_disabled_; }
 };
 
 /**
@@ -78,7 +81,7 @@ class UAVCAN_EXPORT SingleFrameIncomingTransfer : public IncomingTransfer
     const uint8_t* const payload_;
     const uint8_t payload_len_;
 public:
-    explicit SingleFrameIncomingTransfer(const RxFrame& frm);
+    explicit SingleFrameIncomingTransfer(const RxFrame& frm, bool tao_disabled);
     virtual int read(unsigned offset, uint8_t* data, unsigned len) const override;
     virtual bool isAnonymousTransfer() const override;
 };
@@ -91,7 +94,7 @@ class UAVCAN_EXPORT MultiFrameIncomingTransfer : public IncomingTransfer, Noncop
     TransferBufferAccessor& buf_acc_;
 public:
     MultiFrameIncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc, const RxFrame& last_frame,
-                               TransferBufferAccessor& tba);
+                               TransferBufferAccessor& tba, bool tao_disabled);
     virtual int read(unsigned offset, uint8_t* data, unsigned len) const override;
     virtual void release() override { buf_acc_.remove(); }
 };
@@ -125,8 +128,8 @@ class UAVCAN_EXPORT TransferListener : public LinkedListNode<TransferListener>
     bool checkPayloadCrc(const uint16_t compare_with, const ITransferBuffer& tbb) const;
 
 protected:
-    void handleReception(TransferReceiver& receiver, const RxFrame& frame, TransferBufferAccessor& tba);
-    void handleAnonymousTransferReception(const RxFrame& frame);
+    void handleReception(TransferReceiver& receiver, const RxFrame& frame, TransferBufferAccessor& tba, bool tao_disabled);
+    void handleAnonymousTransferReception(const RxFrame& frame, bool tao_disabled);
 
     uint16_t actual_max_buffer_size(uint16_t max_buffer_size);
 
@@ -155,7 +158,7 @@ public:
 
     void cleanup(MonotonicTime ts);
 
-    virtual void handleFrame(const RxFrame& frame);
+    virtual void handleFrame(const RxFrame& frame, bool tao_disabled);
 };
 
 /**
@@ -179,7 +182,7 @@ class UAVCAN_EXPORT TransferListenerWithFilter : public TransferListener
 {
     const ITransferAcceptanceFilter* filter_;
 
-    virtual void handleFrame(const RxFrame& frame) override;
+    virtual void handleFrame(const RxFrame& frame, bool tao_disabled) override;
 
 public:
     TransferListenerWithFilter(TransferPerfCounter& perf, const DataTypeDescriptor& data_type,

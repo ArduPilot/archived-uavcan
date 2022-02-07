@@ -18,6 +18,8 @@ namespace uavcan
  */
 class UAVCAN_EXPORT INode
 {
+    bool canfd_ = false;
+    bool tao_disabled_ = false;
 public:
     virtual ~INode() { }
     virtual IPoolAllocator& getAllocator() = 0;
@@ -62,6 +64,8 @@ public:
      */
     int spin(MonotonicTime deadline)
     {
+        getScheduler().getDispatcher().setTaoDisabled(tao_disabled_);
+        getScheduler().getDispatcher().setCanFdEnabled(canfd_);
         return getScheduler().spin(deadline);
     }
 
@@ -73,6 +77,8 @@ public:
      */
     int spin(MonotonicDuration duration)
     {
+        getScheduler().getDispatcher().setTaoDisabled(tao_disabled_);
+        getScheduler().getDispatcher().setCanFdEnabled(canfd_);
         return getScheduler().spin(getMonotonicTime() + duration);
     }
 
@@ -85,6 +91,8 @@ public:
      */
     int spinOnce()
     {
+        getScheduler().getDispatcher().setTaoDisabled(tao_disabled_);
+        getScheduler().getDispatcher().setCanFdEnabled(canfd_);
         return getScheduler().spinOnce();
     }
 
@@ -114,6 +122,46 @@ public:
     {
         return getDispatcher().getCanIOManager().send(frame, tx_deadline, MonotonicTime(), iface_mask, qos, flags);
     }
+
+    /**
+     * @brief Disable Tail Array Optimisation
+     * 
+     */
+    void disableTao()            { tao_disabled_ = true; }
+
+    /**
+     * @brief Enable Tail Array Optimisation
+     * 
+     */
+    void enableTao()             { tao_disabled_ = false; }
+
+    /**
+     * @brief Check if Tail Array Optimisation is enabled
+     * 
+     * @return true 
+     * @return false 
+     */
+    bool isTaoDisabled()          { return tao_disabled_; }
+
+    /**
+     * @brief Check if CAN FD is enabled
+     * 
+     * @return true 
+     * @return false 
+     */
+    bool isCanFdEnabled()        { return canfd_; }
+
+    /**
+     * @brief Enable CAN FD
+     * 
+     */
+    void enableCanFd()           { canfd_ = true; }
+
+    /**
+     * @brief Disable CAN FD
+     * 
+     */
+    void disableCanFd()          { canfd_ = false; }
 
 #if !UAVCAN_TINY
     /**

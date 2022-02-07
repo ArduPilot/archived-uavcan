@@ -83,6 +83,8 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
     ISystemClock& sysclock_;
     OutgoingTransferRegistry outgoing_transfer_reg_;
     TransferPerfCounter perf_;
+    bool tao_disabled_ = false;
+    bool canfd_ = false;
 
     class ListenerRegistry
     {
@@ -107,7 +109,7 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
         void remove(TransferListener* listener);
         bool exists(DataTypeID dtid) const;
         void cleanup(MonotonicTime ts);
-        void handleFrame(const RxFrame& frame);
+        void handleFrame(const RxFrame& frame, bool tao_disabled);
 
         unsigned getNumEntries() const { return list_.getLength(); }
 
@@ -174,6 +176,9 @@ public:
     bool hasPublisher(DataTypeID dtid) const;
     bool hasServer(DataTypeID dtid) const;
 
+    bool isTaoDisabled() const { return tao_disabled_; }
+    bool isCanFdEnabled() const { return canfd_; }
+
     unsigned getNumMessageListeners()         const { return lmsg_.getNumEntries(); }
     unsigned getNumServiceRequestListeners()  const { return lsrv_req_.getNumEntries(); }
     unsigned getNumServiceResponseListeners() const { return lsrv_resp_.getNumEntries(); }
@@ -235,6 +240,9 @@ public:
 
     const TransferPerfCounter& getTransferPerfCounter() const { return perf_; }
     TransferPerfCounter& getTransferPerfCounter() { return perf_; }
+
+    void setTaoDisabled(bool disable) { tao_disabled_ = disable; }
+    void setCanFdEnabled(bool enable) { canfd_ = enable; }
 };
 
 }
