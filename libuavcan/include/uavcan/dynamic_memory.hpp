@@ -158,7 +158,7 @@ PoolAllocator<PoolSize, BlockSize, RaiiSynchronizer>::PoolAllocator() :
     }
     free_list_[NumBlocks - 1].next = UAVCAN_NULLPTR;
 }
-#pragma pop
+#pragma GCC diagnostic pop
 
 template <std::size_t PoolSize, uint8_t BlockSize, typename RaiiSynchronizer>
 void* PoolAllocator<PoolSize, BlockSize, RaiiSynchronizer>::allocate(std::size_t size)
